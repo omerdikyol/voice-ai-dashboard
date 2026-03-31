@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: voice-ai-dashboard-postgres
+    environment:
+      POSTGRES_DB: voice_ai_dashboard
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d voice_ai_dashboard"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: voice-ai-dashboard-api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://postgres:postgres@postgres:5432/voice_ai_dashboard}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      LURON_BASE_URL: ${LURON_BASE_URL:-https://luron-backend.onrender.com/api/v1}
+      FX_API_URL: ${FX_API_URL:-https://api.frankfurter.dev/v1/latest}
+      WEATHER_API_URL: ${WEATHER_API_URL:-https://api.open-meteo.com/v1/forecast}
+      WEATHER_GEOCODE_API_URL: ${WEATHER_GEOCODE_API_URL:-https://geocoding-api.open-meteo.com/v1/search}
+      DEFAULT_WEATHER_CITY: ${DEFAULT_WEATHER_CITY:-Istanbul}
+      DEFAULT_WEATHER_LAT: ${DEFAULT_WEATHER_LAT:-41.0082}
+      DEFAULT_WEATHER_LON: ${DEFAULT_WEATHER_LON:-28.9784}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/api/data/uploads:/app/apps/api/data/uploads
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: voice-ai-dashboard-web
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api}
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:

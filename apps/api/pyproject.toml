@@ -1,0 +1,35 @@
+[project]
+name = "voice-ai-dashboard-api"
+version = "0.1.0"
+description = "FastAPI backend for the Voice AI dashboard case study."
+requires-python = ">=3.12"
+dependencies = [
+  "alembic>=1.14.0",
+  "docx2txt>=0.8",
+  "fastapi>=0.116.0",
+  "httpx>=0.28.1",
+  "openai>=1.70.0",
+  "pgvector>=0.3.6",
+  "psycopg[binary]>=3.2.9",
+  "pydantic-settings>=2.8.1",
+  "pypdf>=5.4.0",
+  "python-multipart>=0.0.20",
+  "sqlalchemy>=2.0.39",
+  "structlog>=25.2.0",
+  "uvicorn[standard]>=0.34.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.5"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
