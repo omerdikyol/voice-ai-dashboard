@@ -162,13 +162,17 @@ class AnalyticsService:
         topic_counts = Counter()
         tag_counts = Counter()
         outcome_counts = Counter()
+        activity_counts: dict[tuple[int, int], int] = defaultdict(int)
         sentiment_totals: dict[str, dict[str, float | int]] = defaultdict(lambda: {"total": 0.0, "count": 0})
         scatter = []
+        weekday_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
         for call in calls:
-            day = (call.started_at or call.created_at).astimezone(timezone.utc).strftime("%Y-%m-%d")
+            timestamp = (call.started_at or call.created_at).astimezone(timezone.utc)
+            day = timestamp.strftime("%Y-%m-%d")
             calls_over_time[day] += 1
             status_by_day[day][call.status] += 1
+            activity_counts[(timestamp.weekday(), timestamp.hour)] += 1
             if call.topic:
                 topic_counts[call.topic] += 1
                 if call.sentiment_score is not None:
@@ -211,6 +215,16 @@ class AnalyticsService:
                     reverse=True,
                 )[:8]
                 if int(values["count"]) > 0
+            ],
+            "activity_heatmap": [
+                {
+                    "weekday": weekday,
+                    "weekday_label": weekday_labels[weekday],
+                    "hour": hour,
+                    "count": activity_counts[(weekday, hour)],
+                }
+                for weekday in range(7)
+                for hour in range(24)
             ],
             "scatter": scatter,
             "outcome_breakdown": [{"key": key, "count": value} for key, value in outcome_counts.most_common(8)],

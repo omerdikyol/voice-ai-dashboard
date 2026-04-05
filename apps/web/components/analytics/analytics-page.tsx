@@ -60,6 +60,16 @@ export function AnalyticsPage() {
 
       {timeseriesQuery.data ? (
         <div className="grid gap-4 xl:grid-cols-2">
+          <AnalyticsCard
+            title="7x24 activity heatmap"
+            description="A weekly view of call volume by weekday and hour so staffing pressure is visible at a glance."
+          >
+            {timeseriesQuery.data.activity_heatmap.some((cell) => cell.count > 0) ? (
+              <ActivityHeatmap data={timeseriesQuery.data.activity_heatmap} />
+            ) : (
+              <EmptyBlock title="No activity signal yet" description="The filtered rows do not contain enough timestamps to populate the weekly heatmap." />
+            )}
+          </AnalyticsCard>
           <AnalyticsCard title="Tag frequency" description="Common operational tags, including VIP and urgent clusters.">
             {timeseriesQuery.data.tag_breakdown.length ? (
               <VerticalBarChart data={timeseriesQuery.data.tag_breakdown} dataKey="count" yAxisKey="key" fill="var(--color-chart-3)" />
@@ -139,5 +149,64 @@ function VerticalBarChart({
         <Bar dataKey={dataKey} fill={fill} radius={[0, 12, 12, 0]} />
       </BarChart>
     </ResponsiveContainer>
+  );
+}
+
+function ActivityHeatmap({
+  data,
+}: {
+  data: { weekday: number; weekday_label: string; hour: number; count: number }[];
+}) {
+  const maxCount = Math.max(...data.map((cell) => cell.count), 0);
+  const byWeekday = new Map<number, { weekday_label: string; cells: typeof data }>();
+
+  data.forEach((cell) => {
+    const existing = byWeekday.get(cell.weekday);
+    if (existing) {
+      existing.cells.push(cell);
+      return;
+    }
+    byWeekday.set(cell.weekday, { weekday_label: cell.weekday_label, cells: [cell] });
+  });
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span />
+        <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(24, minmax(0, 1fr))" }}>
+          {Array.from({ length: 24 }, (_, hour) => (
+            <span key={hour} className="text-center">
+              {hour}
+            </span>
+          ))}
+        </div>
+      </div>
+      {Array.from(byWeekday.entries())
+        .sort(([left], [right]) => left - right)
+        .map(([weekday, row]) => (
+          <div key={weekday} className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-2">
+            <span className="text-sm font-medium text-foreground">{row.weekday_label}</span>
+            <div className="grid gap-1" style={{ gridTemplateColumns: "repeat(24, minmax(0, 1fr))" }}>
+              {row.cells
+                .sort((left, right) => left.hour - right.hour)
+                .map((cell) => {
+                  const opacity = cell.count === 0 || maxCount === 0 ? 0.08 : 0.18 + (cell.count / maxCount) * 0.82;
+                  return (
+                    <div
+                      key={`${cell.weekday}-${cell.hour}`}
+                      className="h-6 rounded-md bg-primary transition-opacity"
+                      style={{ opacity }}
+                      title={`${row.weekday_label} ${String(cell.hour).padStart(2, "0")}:00 · ${cell.count} call${cell.count === 1 ? "" : "s"}`}
+                    />
+                  );
+                })}
+            </div>
+          </div>
+        ))}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>Lighter cells indicate low activity.</span>
+        <span>Darker cells indicate the busiest periods in the filtered set.</span>
+      </div>
+    </div>
   );
 }
