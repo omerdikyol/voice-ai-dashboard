@@ -25,6 +25,10 @@ services:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://postgres:postgres@postgres:5432/voice_ai_dashboard}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       LURON_BASE_URL: ${LURON_BASE_URL:-https://luron-backend.onrender.com/api/v1}
+      LURON_API_KEY: ${LURON_API_KEY:-}
+      LURON_CALL_STATUS_URL_TEMPLATE: ${LURON_CALL_STATUS_URL_TEMPLATE:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
       FX_API_URL: ${FX_API_URL:-https://api.frankfurter.dev/v1/latest}
       WEATHER_API_URL: ${WEATHER_API_URL:-https://api.open-meteo.com/v1/forecast}
       WEATHER_GEOCODE_API_URL: ${WEATHER_GEOCODE_API_URL:-https://geocoding-api.open-meteo.com/v1/search}

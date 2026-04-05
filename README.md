@@ -32,8 +32,18 @@ flowchart LR
 
 1. Copy `.env.example` to `.env`.
 2. Set `LURON_API_KEY`. Add `OPENAI_API_KEY` if you want OpenAI embeddings instead of the deterministic local fallback.
-3. Run `docker compose up --build`.
-4. Open [http://localhost:3000](http://localhost:3000).
+3. If your provider exposes a manual-call status endpoint, set `LURON_CALL_STATUS_URL_TEMPLATE` with a URL that contains `{call_id}`.
+4. Run `docker compose up --build`.
+5. Open [http://localhost:3000](http://localhost:3000).
+
+### Clean-clone smoke path
+
+1. `cp .env.example .env`
+2. Fill `LURON_API_KEY`
+3. Optionally fill `OPENAI_API_KEY`
+4. Optionally set `LURON_CALL_STATUS_URL_TEMPLATE=https://provider.example.com/calls/{call_id}`
+5. `docker compose up --build`
+6. Visit [http://localhost:3000](http://localhost:3000) and [http://localhost:8000/api/ready](http://localhost:8000/api/ready)
 
 ### Local non-Docker workflow
 
@@ -48,6 +58,7 @@ flowchart LR
 | `DATABASE_URL` | yes | SQLAlchemy/Postgres connection string |
 | `LURON_BASE_URL` | no | Luron API base URL |
 | `LURON_API_KEY` | yes | Backend-only key for mock call sync and outbound calls |
+| `LURON_CALL_STATUS_URL_TEMPLATE` | no | Optional provider status lookup URL, for example `https://provider.example.com/calls/{call_id}` |
 | `OPENAI_API_KEY` | no | Embedding provider key |
 | `OPENAI_EMBEDDING_MODEL` | no | Embedding model name |
 | `FX_API_URL` | no | FX provider endpoint |
@@ -73,18 +84,19 @@ flowchart LR
 - Assembles a prompt with optional knowledge-base, FX, and weather sections
 - Shows the injected prompt inline in the main editor flow before making the backend-proxied Luron call
 - Persists outbound attempts and prompt-context audit data
-- Polls manual calls through a backend refresh endpoint until the provider reports no live refresh is available or the call reaches a terminal state
+- Polls manual calls through a backend refresh endpoint until the call reaches a terminal state or the provider reports that live refresh is unsupported
 
 ### Knowledge Base
 
 - Accepts `.pdf` and `.docx`
-- Extracts text, chunks it, embeds it, and stores vectors in Postgres
-- Keeps uploaded file metadata and chunk counts visible in the UI
+- Stores the file immediately, then runs extraction, chunking, and embedding in the background
+- Keeps staged processing status, timestamps, uploaded metadata, and chunk counts visible in the UI
 
 ### Analytics
 
 - Provides additional tag and outcome breakouts for QA and routing review
 - Adds a sentiment-by-topic view to surface topics that trend positive or negative faster
+- Adds a 7x24 activity heatmap so busy windows are visible by weekday and hour
 
 ## Usage Flow
 
@@ -92,7 +104,8 @@ flowchart LR
 2. Go to the Call Console and set the voice, phone number, prompt, and enrichment toggles.
 3. Preview the final prompt. The injected result appears directly in the editor area, and citations can be opened from the side drawer.
 4. Trigger a call. The request is proxied through the backend, persisted locally, and shown in call history with status detail and last-checked time.
-5. Upload PDF or DOCX files in Knowledge Base to make retrieval-backed prompt injection available on later calls.
+5. Upload PDF or DOCX files in Knowledge Base. The file is stored immediately, then the list updates through staged `uploaded`, `extracting`, `chunking`, `embedding`, and `indexed` states.
+6. Return to the Call Console and enable Knowledge Base injection to reuse indexed material in later prompts.
 
 ## API Surface
 
@@ -138,6 +151,6 @@ flowchart LR
 
 ![Analytics](docs/screenshots/analytics.png)
 
-## Known Limitations
+## Notes
 
-- The provided Luron brief documents `make-call` and `mock-calls`, but not a standalone call-status lookup endpoint. Manual call polling therefore degrades gracefully: the backend records when status refresh was attempted and clearly marks live provider refresh as unavailable when the provider cannot supply it.
+- Manual-call status refresh is configurable. If `LURON_CALL_STATUS_URL_TEMPLATE` is unset, the backend marks refresh as unavailable instead of implying that live status exists.
