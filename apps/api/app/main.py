@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import uuid
 
 import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.deps import knowledge_base_service
 from app.api.routes import router
 from app.core.config import settings
 from app.core.logging import configure_logging
@@ -36,6 +38,7 @@ async def add_request_id(request: Request, call_next):
 @app.on_event("startup")
 async def on_startup() -> None:
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
+    asyncio.create_task(asyncio.to_thread(knowledge_base_service.resume_pending_documents))
     logger.info("app.startup", uploads_dir=str(settings.uploads_dir))
 
 

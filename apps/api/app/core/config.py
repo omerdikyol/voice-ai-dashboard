@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
     luron_base_url: str = Field(default="https://luron-backend.onrender.com/api/v1", alias="LURON_BASE_URL")
     luron_api_key: str = Field(default="", alias="LURON_API_KEY")
+    luron_call_status_url_template: str = Field(default="", alias="LURON_CALL_STATUS_URL_TEMPLATE")
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     openai_embedding_model: str = Field(default="text-embedding-3-small", alias="OPENAI_EMBEDDING_MODEL")
     fx_api_url: str = Field(default="https://api.frankfurter.dev/v1/latest", alias="FX_API_URL")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -67,6 +67,7 @@ async def dashboard_summary(
         sentiment=sentiment,
         topic=topic,
         tag=tag,
+        source="mock",
     )
     return DashboardSummaryResponse.model_validate(analytics_service.build_summary(calls, synced_at))
 
@@ -93,6 +94,7 @@ async def dashboard_timeseries(
         sentiment=sentiment,
         topic=topic,
         tag=tag,
+        source="mock",
     )
     return DashboardTimeseriesResponse.model_validate(analytics_service.build_timeseries(calls))
 
@@ -130,7 +132,7 @@ async def refresh_call_status(call_id: str, db: Session = Depends(get_db)) -> Ca
     call.status_last_checked_at = datetime.now(timezone.utc)
     call.provider_status_available = bool(status_payload.get("provider_status_available", False))
     call.status_detail = status_payload.get("detail")
-    if status_payload.get("status"):
+    if status_payload.get("status") is not None:
         call.status = str(status_payload["status"])
     db.commit()
     db.refresh(call)
@@ -154,13 +156,23 @@ async def create_call(payload: CreateCallRequest, db: Session = Depends(get_db))
     }
     try:
         provider_response = await luron_service.make_call(request_payload)
-        status = "in_progress"
+        external_call_id = luron_service.extract_external_call_id(provider_response)
+        status = luron_service.derive_status(
+            provider_response,
+            success_fallback="accepted" if external_call_id else "submitted",
+        )
+        status_detail = luron_service.derive_detail(
+            provider_response,
+            "Provider accepted the call request and returned an acknowledgement.",
+        )
     except Exception as exc:
         provider_response = {"success": False, "error": str(exc)}
+        external_call_id = None
         status = "failed"
+        status_detail = str(exc)
 
     call = Call(
-        external_call_id=str(provider_response.get("call_id") or provider_response.get("id") or ""),
+        external_call_id=external_call_id,
         source="manual",
         phone_number=payload.phone_number,
         direction="outbound",
@@ -172,17 +184,13 @@ async def create_call(payload: CreateCallRequest, db: Session = Depends(get_db))
         transcript_preview=payload.welcome_message,
         tags=["manual-console"],
         provider_response=provider_response,
-        status_detail=(
-            "Call created through the backend and waiting for provider-side status updates."
-            if status == "in_progress"
-            else str(provider_response.get("error") or "Provider call failed.")
-        ),
-        provider_status_available=False,
+        status_detail=status_detail,
+        provider_status_available=bool(external_call_id and luron_service.can_refresh_status()),
     )
-    if call.external_call_id == "":
-        call.external_call_id = None
-        if status == "in_progress":
-            call.status_detail = "Provider accepted the call request but did not return a call identifier for live refresh."
+    if external_call_id is None and status != "failed":
+        call.status_detail = (
+            "Provider accepted the call request but did not return a call identifier, so live refresh is unavailable."
+        )
     db.add(call)
     db.flush()
 
@@ -216,9 +224,14 @@ def list_documents(db: Session = Depends(get_db)) -> list[DocumentResponse]:
 
 
 @router.post("/knowledge/documents", response_model=DocumentResponse)
-def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)) -> DocumentResponse:
+def upload_document(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> DocumentResponse:
     try:
-        document = knowledge_base_service.upload_document(db, file)
+        document = knowledge_base_service.create_document(db, file)
+        background_tasks.add_task(knowledge_base_service.process_document, document.id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

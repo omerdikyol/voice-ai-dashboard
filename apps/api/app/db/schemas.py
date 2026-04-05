@@ -7,7 +7,17 @@ from pydantic import BaseModel, Field, field_validator
 
 
 VoiceLiteral = Literal["burcin", "callie"]
-StatusLiteral = Literal["completed", "no_answer", "busy", "voicemail", "failed", "in_progress"]
+StatusLiteral = Literal[
+    "submitted",
+    "accepted",
+    "in_progress",
+    "completed",
+    "failed",
+    "status_unavailable",
+    "no_answer",
+    "busy",
+    "voicemail",
+]
 SentimentLiteral = Literal["positive", "neutral", "negative", "mixed"]
 DirectionLiteral = Literal["inbound", "outbound"]
 
@@ -102,7 +112,10 @@ class DocumentResponse(BaseModel):
     byte_size: int
     status: str
     chunk_count: int
+    status_message: str | None
     error_message: str | None
+    processing_started_at: datetime | None
+    processed_at: datetime | None
     uploaded_at: datetime
     updated_at: datetime
 
@@ -134,6 +147,7 @@ class DashboardTimeseriesResponse(BaseModel):
     top_topics: list[dict]
     tag_breakdown: list[dict]
     sentiment_by_topic: list[dict]
+    activity_heatmap: list[dict]
     scatter: list[dict]
     outcome_breakdown: list[dict]
 
