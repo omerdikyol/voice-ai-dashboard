@@ -13,6 +13,13 @@ import { deleteDocument, getDocuments, uploadDocument } from "@/lib/api";
 import { formatBytes, formatLongDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyBlock, ErrorBlock } from "@/components/shared/state-block";
+import type { DocumentRecord } from "@/lib/types";
+
+const processingStatuses = new Set(["uploaded", "extracting", "chunking", "embedding"]);
+
+function hasProcessingDocuments(documents: DocumentRecord[] | undefined) {
+  return (documents ?? []).some((document) => processingStatuses.has(document.status));
+}
 
 export function KnowledgeBasePage() {
   const queryClient = useQueryClient();
@@ -21,6 +28,10 @@ export function KnowledgeBasePage() {
   const documentsQuery = useQuery({
     queryKey: ["knowledge-documents"],
     queryFn: getDocuments,
+    refetchInterval: (query) => {
+      const documents = query.state.data as DocumentRecord[] | undefined;
+      return hasProcessingDocuments(documents) ? 3000 : false;
+    },
   });
 
   const uploadMutation = useMutation({
@@ -28,9 +39,13 @@ export function KnowledgeBasePage() {
       uploadDocument(file, (value) => {
         setProgress(value);
       }),
-    onSuccess: () => {
+    onSuccess: (document) => {
       setProgress(100);
-      toast.success("Document processed and indexed.");
+      toast.success("Upload received. Document processing is running in the background.");
+      queryClient.setQueryData(["knowledge-documents"], (existing: DocumentRecord[] | undefined) => [
+        document,
+        ...(existing ?? []).filter((item) => item.id !== document.id),
+      ]);
       void queryClient.invalidateQueries({ queryKey: ["knowledge-documents"] });
       setTimeout(() => setProgress(0), 1200);
     },
@@ -95,10 +110,17 @@ export function KnowledgeBasePage() {
               Drop a PDF or DOCX here
             </h3>
             <p className="mt-2 text-sm leading-7 text-muted-foreground">
-              Or click to browse files. The backend will extract text, chunk it, embed it, and persist both metadata and vectors.
+              Or click to browse files. Upload stores the file immediately, then extraction, chunking, and embedding continue asynchronously.
             </p>
           </div>
-          {progress > 0 ? <Progress value={progress} className="h-2" /> : null}
+          {progress > 0 ? (
+            <div className="space-y-2">
+              <Progress value={progress} className="h-2" />
+              <p className="text-xs text-muted-foreground">
+                Upload progress only. Processing state appears in the indexed documents list after the file is stored.
+              </p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -128,6 +150,18 @@ export function KnowledgeBasePage() {
                   <p className="text-sm leading-6 text-muted-foreground">
                     {formatBytes(document.byte_size)} · {document.chunk_count} chunks · Updated {formatLongDateTime(document.updated_at)}
                   </p>
+                  {document.status_message ? (
+                    <p className="text-sm leading-6 text-muted-foreground">{document.status_message}</p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span>Uploaded {formatLongDateTime(document.uploaded_at)}</span>
+                    {document.processing_started_at ? (
+                      <span>Started {formatLongDateTime(document.processing_started_at)}</span>
+                    ) : null}
+                    {document.processed_at ? (
+                      <span>Finished {formatLongDateTime(document.processed_at)}</span>
+                    ) : null}
+                  </div>
                   {document.error_message ? (
                     <p className="text-sm text-destructive">{document.error_message}</p>
                   ) : null}

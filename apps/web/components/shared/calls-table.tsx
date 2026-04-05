@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { formatCompactDateTime, formatLongDateTime } from "@/lib/format";
 import { CallRecord } from "@/lib/types";
 
-const TERMINAL_STATUSES = new Set(["completed", "no_answer", "busy", "voicemail", "failed"]);
+const TERMINAL_STATUSES = new Set(["completed", "no_answer", "busy", "voicemail", "failed", "status_unavailable"]);
 
 export function CallsTable({
   calls,

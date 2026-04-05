@@ -86,7 +86,7 @@ const defaultSettings: CallConsoleSettings = {
   top_k: 4,
 };
 
-const terminalStatuses = new Set(["completed", "no_answer", "busy", "voicemail", "failed"]);
+const terminalStatuses = new Set(["completed", "no_answer", "busy", "voicemail", "failed", "status_unavailable"]);
 
 export function CallConsolePage() {
   const queryClient = useQueryClient();
@@ -190,6 +190,27 @@ export function CallConsolePage() {
 
   const payloadKey = useMemo(() => JSON.stringify(payload), [payload]);
   const isPreviewStale = !!previewData && previewSourceKey !== payloadKey;
+  const outboundPromptState = useMemo(() => {
+    if (previewData && !isPreviewStale) {
+      return {
+        badge: "Exact prompt ready",
+        tone: "secondary" as const,
+        description: "The injected prompt is current and matches the next outbound payload.",
+      };
+    }
+    if (previewData && isPreviewStale) {
+      return {
+        badge: "Preview will refresh on send",
+        tone: "outline" as const,
+        description: "The base prompt changed after the last preview. Make Call will rebuild the final payload first.",
+      };
+    }
+    return {
+      badge: "Base prompt only",
+      tone: "outline" as const,
+      description: "Generate a preview to inspect the final enriched payload before sending the call.",
+    };
+  }, [isPreviewStale, previewData]);
   const activePollTargets = useMemo(
     () =>
       (historyQuery.data ?? [])
@@ -430,6 +451,23 @@ export function CallConsolePage() {
                   )}
                 </TabsContent>
               </Tabs>
+            </div>
+
+            <div className="rounded-[24px] border border-border/70 bg-background/75 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground">
+                    Outbound payload
+                  </p>
+                  <p className="font-medium text-foreground">
+                    {voice === "callie" ? "Callie" : "Burcin"} · {payload.phone_number}
+                  </p>
+                  <p className="text-sm leading-6 text-muted-foreground">{outboundPromptState.description}</p>
+                </div>
+                <Badge variant={outboundPromptState.tone} className="rounded-full">
+                  {outboundPromptState.badge}
+                </Badge>
+              </div>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">

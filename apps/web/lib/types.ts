@@ -52,6 +52,7 @@ export type DashboardTimeseries = {
   top_topics: { key: string; count: number }[];
   tag_breakdown: { key: string; count: number }[];
   sentiment_by_topic: { topic: string; average_score: number; calls: number }[];
+  activity_heatmap: { weekday: number; weekday_label: string; hour: number; count: number }[];
   scatter: {
     id: string;
     sentiment_score: number;
@@ -118,7 +119,10 @@ export type DocumentRecord = {
   byte_size: number;
   status: string;
   chunk_count: number;
+  status_message: string | null;
   error_message: string | null;
+  processing_started_at: string | null;
+  processed_at: string | null;
   uploaded_at: string;
   updated_at: string;
 };
