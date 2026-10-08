@@ -1,12 +1,18 @@
 # Call Bank Voice AI Suite
 
-Full-stack Voice AI dashboard and integration suite for the Luron AI case study. The project includes:
+A full-stack case study for inspecting call activity, initiating provider calls, and adding document context to prompts. A Next.js operations UI talks to a FastAPI backend with persisted call and document-processing state. The project includes:
 
 - A `Next.js` + `shadcn/ui` operations dashboard
 - A `FastAPI` backend that proxies Luron calls and syncs analytics data
 - `Postgres + pgvector` for persisted app data and retrieval chunks
 - A drag-and-drop knowledge base with PDF/DOCX ingestion
 - Prompt enrichment from live FX and weather APIs
+
+## Case-study scope
+
+Provider-backed calls require Luron configuration. Document processing can use OpenAI embeddings or the deterministic local fallback; the fallback is a development path, not equivalent semantic retrieval. Retrieval currently scores fetched chunks in the service rather than demonstrating a pgvector index query.
+
+Start with [the knowledge-base service](apps/api/app/services/knowledge_base.py), [the Luron integration](apps/api/app/services/luron.py), and [the document-processing tests](apps/api/tests/test_knowledge_base.py). The local stack is a case-study environment; review access controls and upload limits before exposing it publicly.
 
 ## Architecture
 
