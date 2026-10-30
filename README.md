@@ -1,4 +1,10 @@
-# Call Bank Voice AI Suite
+<h1 align="center">Call Bank Voice AI Suite</h1>
+
+<p align="center">
+  <img alt="frontend: Next.js" src="https://img.shields.io/badge/frontend-Next.js-black">
+  <img alt="backend: FastAPI" src="https://img.shields.io/badge/backend-FastAPI-009688">
+  <img alt="database: Postgres + pgvector" src="https://img.shields.io/badge/database-Postgres%20%2B%20pgvector-336791">
+</p>
 
 A full-stack case study for inspecting call activity, initiating provider calls, and adding document context to prompts. A Next.js operations UI talks to a FastAPI backend with persisted call and document-processing state. The project includes:
 
