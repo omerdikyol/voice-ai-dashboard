@@ -71,10 +71,21 @@ function SidebarContent() {
       </div>
       <SidebarNav />
       <div className="mt-auto rounded-3xl border border-white/10 bg-white/6 p-4 text-sm text-white/75">
-        <p className="font-semibold text-white">Ops note</p>
-        <p className="mt-2 leading-6">
-          The dashboard syncs provider data through the backend and keeps analytics available across restarts.
-        </p>
+        {process.env.NEXT_PUBLIC_DEMO_MODE === "1" ? (
+          <>
+            <p className="font-semibold text-white">Demo mode</p>
+            <p className="mt-2 leading-6">
+              Static demo with generated mock data. No backend runs, no calls are placed, and uploads stay in your browser.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="font-semibold text-white">Ops note</p>
+            <p className="mt-2 leading-6">
+              The dashboard syncs provider data through the backend and keeps analytics available across restarts.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

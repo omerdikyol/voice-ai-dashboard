@@ -14,6 +14,10 @@ A full-stack case study for inspecting call activity, initiating provider calls,
 - A drag-and-drop knowledge base with PDF/DOCX ingestion
 - Prompt enrichment from live FX and weather APIs
 
+## Live demo
+
+**[omerdikyol.github.io/voice-ai-dashboard](https://omerdikyol.github.io/voice-ai-dashboard/)**: the web UI built as a static site with generated mock data. No backend runs behind it, so no calls are placed and uploaded files stay in the browser. Build it locally with `NEXT_PUBLIC_DEMO_MODE=1 pnpm --dir apps/web build`.
+
 ## Case-study scope
 
 Provider-backed calls require Luron configuration. Document processing can use OpenAI embeddings or the deterministic local fallback; the fallback is a development path, not equivalent semantic retrieval. Retrieval currently scores fetched chunks in the service rather than demonstrating a pgvector index query.

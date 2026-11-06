@@ -9,6 +9,9 @@ import type {
   IntegrationStatus,
   PromptPreview,
 } from "@/lib/types";
+import * as mock from "@/lib/mock-api";
+
+const DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:8000/api";
@@ -57,18 +60,22 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function getDashboardSummary(filters: FilterParams, refresh = false) {
+  if (DEMO) return mock.getDashboardSummary(filters);
   return fetchJson<DashboardSummary>(`/dashboard/summary?${createSearchParams({ ...filters, refresh })}`);
 }
 
 export async function getDashboardTimeseries(filters: FilterParams, refresh = false) {
+  if (DEMO) return mock.getDashboardTimeseries(filters);
   return fetchJson<DashboardTimeseries>(`/dashboard/timeseries?${createSearchParams({ ...filters, refresh })}`);
 }
 
 export async function getCalls(source?: string, limit = 50) {
+  if (DEMO) return mock.getCalls(source, limit);
   return fetchJson<CallRecord[]>(`/calls?${createSearchParams({ source, limit, days: 90 })}`);
 }
 
 export async function previewPrompt(payload: CreateCallPayload) {
+  if (DEMO) return mock.previewPrompt(payload);
   return fetchJson<PromptPreview>("/prompts/preview", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -76,6 +83,7 @@ export async function previewPrompt(payload: CreateCallPayload) {
 }
 
 export async function createCall(payload: CreateCallPayload) {
+  if (DEMO) return mock.createCall(payload);
   return fetchJson<CreateCallResponse>("/calls", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -83,16 +91,19 @@ export async function createCall(payload: CreateCallPayload) {
 }
 
 export async function refreshCallStatus(callId: string) {
+  if (DEMO) return mock.refreshCallStatus(callId);
   return fetchJson<CallRecord>(`/calls/${callId}/refresh-status`, {
     method: "POST",
   });
 }
 
 export async function getDocuments() {
+  if (DEMO) return mock.getDocuments();
   return fetchJson<DocumentRecord[]>("/knowledge/documents");
 }
 
 export async function deleteDocument(documentId: string) {
+  if (DEMO) return mock.deleteDocument(documentId);
   return fetchJson<void>(`/knowledge/documents/${documentId}`, {
     method: "DELETE",
     headers: {},
@@ -103,6 +114,7 @@ export async function uploadDocument(
   file: File,
   onProgress?: (progress: number) => void,
 ): Promise<DocumentRecord> {
+  if (DEMO) return mock.uploadDocument(file, onProgress);
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${API_BASE}/knowledge/documents`);
@@ -127,14 +139,17 @@ export async function uploadDocument(
 }
 
 export async function getIntegrationStatus() {
+  if (DEMO) return mock.getIntegrationStatus();
   return fetchJson<IntegrationStatus>("/integrations/status");
 }
 
 export async function getCallConsoleSettings() {
+  if (DEMO) return mock.getCallConsoleSettings();
   return fetchJson<CallConsoleSettings>("/settings/call-console");
 }
 
 export async function updateCallConsoleSettings(payload: CallConsoleSettings) {
+  if (DEMO) return mock.updateCallConsoleSettings(payload);
   return fetchJson<CallConsoleSettings>("/settings/call-console", {
     method: "PUT",
     body: JSON.stringify(payload),
